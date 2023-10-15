@@ -27,6 +27,8 @@ bool activateStudent(struct student st);
 bool blockStudent(struct student st);
 bool updateFaculty(struct faculty fac);
 bool updateStudent(struct student fac);
+bool addNewCourse(struct course record, int sd);
+void viewOfferedCourses(char facultyID[10], int sd);
 int main()
 {
 	int socket_fd_server, socket_fd_client;
@@ -106,36 +108,6 @@ int client(int socket_fd_client)
 			// strcpy(curr_loginId,curr_user.login_id);
 			res = validateAdmin(userAdmin);
 			send(socket_fd_client, &res, sizeof(res), 0);
-			// recv(socket_fd_client, &option, sizeof(option), 0);
-			/*switch(option)
-			{
-				case 1:
-						recv(socket_fd_client, &st,sizeof(struct student),0 );
-						addStudent(socket_fd_client,st);
-						break;
-				case 2:
-						break;
-				case 3:
-						break;
-				case 4:
-						recv(socket_fd_client, &fac,sizeof(struct faculty),0 );
-						addFaculty(socket_fd_client,fac);
-						break;
-				case 5:
-						break;
-				case 6:
-						break;
-				case 7:
-						break;
-				case 8:
-						break;
-				case 9:
-						break;
-				default:
-						break;
-
-			}*/
-
 			break;
 		case 2:
 			struct faculty userFaculty;
@@ -164,7 +136,7 @@ int client(int socket_fd_client)
 	while (1)
 	{
 		recv(socket_fd_client, &option, sizeof(option), 0);
-		printf("%d", option);
+		//printf("%d", option);
 		switch (choice)
 		{
 		case 1:
@@ -231,8 +203,16 @@ int client(int socket_fd_client)
 			switch (option)
 			{
 			case 1:
+				char facultyID[10];
+                recv(socket_fd_client,facultyID,sizeof(facultyID),0);
+                viewOfferedCourses(facultyID, socket_fd_client);
 				break;
 			case 2:
+				struct course c1;
+                recv(socket_fd_client,&c1,sizeof(struct course),0);
+				//printf("%d %s",c1.id,c1.name);
+                res=addNewCourse(c1, socket_fd_client);
+                send(socket_fd_client,&res,sizeof(res),0);
 				break;
 			case 3:
 				break;
@@ -264,16 +244,22 @@ bool validateAdmin(struct admin user)
 	int fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/admin.data", O_RDONLY, 0744);
 	bool result;
 	struct admin temp;
-	int fl1;
+	int status;
 	struct flock lock;
 	lock.l_type = F_RDLCK;
 	lock.l_whence = SEEK_SET;
 	lock.l_start = 0;
 	lock.l_len = 0;
 	lock.l_pid = getpid();
-	fl1 = fcntl(fd, F_SETLKW, &lock);
+	status= fcntl(fd, F_SETLKW, &lock);
+	if(status==-1)
+	{
+		perror("Error in locking");
+		close(fd);
+		exit(EXIT_FAILURE);
+	}
 	read(fd, &temp, sizeof(struct admin));
-	if (strcmp(temp.password, user.password) == 0)
+	if(strcmp(temp.loginid, user.loginid)==0 && strcmp(temp.password, user.password) == 0)
 	{
 		result = true;
 	}
@@ -282,8 +268,15 @@ bool validateAdmin(struct admin user)
 		result = false;
 	}
 	lock.l_type = F_UNLCK;
-	fcntl(fd, F_SETLK, &lock);
+	status=fcntl(fd, F_SETLK, &lock);
+	if(status==-1)
+	{
+		perror("Error in unlocking");
+		close(fd);
+		exit(EXIT_FAILURE);
+	}	
 	close(fd);
+	//close(fd);
 	return result;
 }
 bool validateFaculty(struct faculty user)
@@ -291,25 +284,44 @@ bool validateFaculty(struct faculty user)
 	int fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/faculty.data", O_RDONLY, 0744);
 	bool result;
 	struct faculty temp;
-	int fl1;
+	int status;
+	char n=user.loginid[2];
+	int i=n-'0';
 	struct flock lock;
 	lock.l_type = F_RDLCK;
 	lock.l_whence = SEEK_SET;
-	lock.l_start = 0;
-	lock.l_len = 0;
+	lock.l_start = (i-1)*sizeof(struct faculty);
+	lock.l_len = sizeof(struct faculty);
 	lock.l_pid = getpid();
-	fl1 = fcntl(fd, F_SETLKW, &lock);
-	read(fd, &temp, sizeof(struct faculty));
-	if (strcmp(temp.password, user.password) == 0)
+	status = fcntl(fd, F_SETLKW, &lock);
+	if(status==-1)
 	{
-		result = true;
+		perror("Error in locking");
+		close(fd);
+		exit(EXIT_FAILURE);
 	}
-	else
-	{
-		result = false;
-	}
+	//printf("val fac: %d",fl1);
+	lseek(fd, (i - 1) * sizeof(struct faculty), SEEK_SET);
+	/*while(*/read(fd, &temp, sizeof(struct faculty));/*>0)
+	{*/
+		if (strcmp(temp.loginid,user.loginid)==0 && strcmp(temp.password, user.password) == 0)
+		{
+			result = true;
+		}
+		else
+		{
+			result = false;
+		}
+	//}
+	
 	lock.l_type = F_UNLCK;
-	fcntl(fd, F_SETLK, &lock);
+	status=fcntl(fd, F_SETLK, &lock);
+	if(status==-1)
+	{
+		perror("Error in unlocking");
+		close(fd);
+		exit(EXIT_FAILURE);
+	}	
 	close(fd);
 	return result;
 }
@@ -318,25 +330,40 @@ bool validateStudent(struct student user)
 	int fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/student.data", O_RDONLY, 0744);
 	bool result;
 	struct student temp;
-	int fl1;
+	int status;
 	struct flock lock;
 	lock.l_type = F_RDLCK;
 	lock.l_whence = SEEK_SET;
 	lock.l_start = 0;
 	lock.l_len = 0;
 	lock.l_pid = getpid();
-	fl1 = fcntl(fd, F_SETLKW, &lock);
-	read(fd, &temp, sizeof(struct student));
-	if (strcmp(temp.password, user.password) == 0)
+	status= fcntl(fd, F_SETLKW, &lock);
+	status = fcntl(fd, F_SETLKW, &lock);
+	if(status==-1)
 	{
-		result = true;
+		perror("Error in locking");
+		close(fd);
+		exit(EXIT_FAILURE);
 	}
-	else
+	while(read(fd, &temp, sizeof(struct student))>0)
 	{
-		result = false;
+		if (strcmp(temp.loginid,user.loginid)==0 && (temp.password, user.password) == 0)
+		{
+			result = true;
+		}
+		else
+		{
+			result = false;
+		}
 	}
 	lock.l_type = F_UNLCK;
-	fcntl(fd, F_SETLK, &lock);
+	status=fcntl(fd, F_SETLK, &lock);
+	if(status==-1)
+	{
+		perror("Error in unlocking");
+		close(fd);
+		exit(EXIT_FAILURE);
+	}	
 	close(fd);
 	return result;
 }
@@ -351,11 +378,11 @@ bool addStudent(int socket_fd_client, struct student st)
 	if (fd == -1 && errno == ENOENT)
 	{
 		fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/student.data", O_RDWR | O_CREAT | O_APPEND, 0744);
-		if (fd == -1)
+		/*if (fd == -1)
 		{
 			perror("Error opening database!");
 			exit(EXIT_FAILURE);
-		}
+		}*/
 		st.id = 1;
 		// flag = 1;
 	}
@@ -739,4 +766,136 @@ bool updateFaculty(struct faculty fac)
 
 	close(fd);
 	return result;
+}
+bool addNewCourse(struct course record, int sd)
+{
+        
+	bool result;
+    int status;
+    char wrBuff[1000];
+	int fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/course.data", O_RDWR , 0744); 
+
+	printf("\n fd: %d",fd);
+	if (fd == -1 && errno == ENOENT)
+	{
+		fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/course.data", O_RDWR | O_CREAT | O_APPEND, 0744);
+		/*if (fd == -1)
+		{
+			perror("Error opening database!");
+			exit(EXIT_FAILURE);
+		}*/
+		record.id = 1;
+		// flag = 1;
+	}
+	else if (fd == -1)
+	{
+		perror("error in opening database");
+		exit(EXIT_FAILURE);
+	}
+	else{
+
+	
+
+        /*int fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/course.data", O_RDWR, 0744);
+
+        
+        int flag = 0;
+
+        if (fd == -1 && errno == ENOENT)
+        {
+                fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/course.data", O_RDWR | O_CREAT | O_APPEND, 0744);
+                record.id = 1;
+                flag = 1;
+        }
+
+        bool result;
+
+        int status;
+        char wrBuff[1000];
+        bzero(wrBuff, sizeof(wrBuff));
+        */
+	   
+       // bzero(wrBuff, sizeof(wrBuff));
+        struct flock lock;
+        lock.l_type = F_WRLCK;
+        lock.l_whence = SEEK_END;
+        lock.l_start = (-1) * sizeof(struct course);
+        lock.l_len = sizeof(struct course);
+        lock.l_pid = getpid();
+	
+        status= fcntl(fd, F_SETLKW, &lock);
+		//printf("\nstatus=%d",status);
+		struct course prev_Course;
+		if(status==-1)
+		 {
+		 	perror("Error while locking");
+		 	exit(EXIT_FAILURE);
+		 }
+
+        lseek(fd, (-1) * sizeof(struct course), SEEK_END);
+
+        read(fd, &prev_Course, sizeof(struct course));
+		record.id= prev_Course.id + 1;
+		lock.l_type = F_UNLCK;
+        status=fcntl(fd, F_SETLK, &lock);
+		if(status==-1)
+		{
+			perror("Error while unlocking");
+			exit(EXIT_FAILURE);
+		}
+	}
+        
+        printf("Course ID = %d\n", record.id);
+        sprintf(wrBuff, "%s%d\n", "Course ID of your new Course is ", record.id);
+        int writeBytes= write(fd, &record, sizeof(struct course));
+        if (writeBytes ==-1)
+		{
+			result = false;
+		}
+        else
+		{
+			result = true;
+		}
+        
+	
+        close(fd);
+        send(sd, wrBuff, sizeof(wrBuff),0);
+	
+        return result;
+}
+void viewOfferedCourses(char facultyID[10], int sd)
+{
+        int fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/course.data", O_RDONLY, 0744);
+        struct course c3;
+        ssize_t bytesRead;
+        char fID[10]; 
+		strcpy(fID, facultyID);
+        // reading one by one record
+        int count=0;
+        printf("Faculty ID to send courses : %s\n:", fID);
+        // count number of course offered by faculty
+        while ((bytesRead = read(fd, &c3, sizeof(struct course))) > 0)
+		{		
+				if(strcmp(fID,c3.facultyloginid)==0)
+				{
+					count++;
+				}
+                
+        }
+
+        // send this count to client
+        send(sd,&count,sizeof(int),0);
+        
+        lseek(fd, 0, SEEK_SET);
+		
+        // sending course details to client
+        while ((bytesRead = read(fd, &c3, sizeof(struct course))) > 0) 
+		{		
+				
+                if (strcmp(fID,c3.facultyloginid)==0)
+				{
+                        send(sd,&c3,sizeof(struct course),0);
+                }
+        }
+        close(fd);
 }

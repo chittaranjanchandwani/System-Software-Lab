@@ -5,7 +5,7 @@
 #include <sys/socket.h>
 #include <netinet/ip.h>
 #include <stdbool.h>
-
+#include <stdlib.h>
 #include "./structures/faculty.h"
 #include "./structures/student.h"
 #include "./structures/course.h"
@@ -24,7 +24,6 @@ void student_login(int sockfd);
 void admin_function(int clientfd, int option);
 void faculty_function(int clientfd, int option);
 int choice1;
-// int connection_handler(int connFD);
 int menu_choice(int);
 int main()
 {
@@ -108,7 +107,7 @@ int faculty_menu(int sockfd)
     printf("4. Update Course Details\n5. Change Password\n6. Logout and Exit");
     printf("\n\nEnter your choice ");
     scanf("%d", &option);
-    faculty_function(sockfd,option);
+    faculty_function(sockfd, option);
     return option;
 }
 int menu_choice(int sockfd)
@@ -236,13 +235,15 @@ void admin_function(int clientfd, int option)
         scanf(" %[^\n]", st1.address);
         printf("Enter student email:");
         scanf(" %[^\n]", st1.email);
+        strcpy(st1.password,"999");
         send(clientfd, &option, sizeof(option), 0);
         send(clientfd, &st1, sizeof(struct student), 0);
         recv(clientfd, &st1.id, sizeof(st1.id), 0);
         recv(clientfd, &result, sizeof(result), 0);
         if (result == true)
         {
-            printf("\nStudent Successfully added with student id %d\n", st1.id);
+            printf("\nStudent Successfully added with student id %d and the default password is 999\n", st1.id);
+            printf("\nYour login ID is MT{id number}");
         }
         if (result == false)
         {
@@ -271,10 +272,11 @@ void admin_function(int clientfd, int option)
         {
             printf("Student ID : %d\n", st2.id);
             printf("Name : %s\n", st2.name);
-            printf("Age : %d\n",st2.age);
-            printf("Address: %s\n",st2.address);
-            printf("Email: %s\n",st2.email);
+            printf("Age : %d\n", st2.age);
+            printf("Address: %s\n", st2.address);
+            printf("Email: %s\n", st2.email);
             printf("Status : %s\n\n", st2.status);
+            printf("LoginID=%s",st2.loginid);
         }
         menu_choice(clientfd);
         break;
@@ -291,13 +293,15 @@ void admin_function(int clientfd, int option)
         scanf(" %[^\n]", fac.address);
         printf("Enter faculty email:");
         scanf(" %[^\n]", fac.email);
+        strcpy(fac.password,"000");
         send(clientfd, &option, sizeof(option), 0);
         send(clientfd, &fac, sizeof(struct faculty), 0);
         recv(clientfd, &id, sizeof(id), 0);
         recv(clientfd, &result, sizeof(result), 0);
         if (result == true)
         {
-            printf("\nFaculty Successfully added with Faculty id %d\n", id);
+            printf("\nFaculty Successfully added with Faculty id %d with default password 000\n", id);
+            printf("\nYour Login Id is FT{facultyid}");
         }
         if (result == false)
         {
@@ -326,7 +330,9 @@ void admin_function(int clientfd, int option)
             printf("Faculty ID : %d\n", fac2.id);
             printf("Name : %s\n", fac2.name);
             printf("Faculty Department : %s\n", fac2.department);
-            printf("Faculty Designation: %s\n\n", fac2.designation);
+            printf("Faculty Designation: %s\n", fac2.designation);
+            printf("Login ID: %s\n\n",fac2.loginid);
+            printf("Password: %s\n", fac2.password);
         }
         menu_choice(clientfd);
         break;
@@ -382,17 +388,17 @@ void admin_function(int clientfd, int option)
         printf("New Name of the Student : ");
         scanf(" %[^\n]", st5.name);
         printf("New Age: ");
-        scanf("%d",&st5.age);
+        scanf("%d", &st5.age);
         getchar();
         printf("New Address: ");
-        scanf("%[^\n]",st5.address);
+        scanf("%[^\n]", st5.address);
         getchar();
         printf("New email: ");
-        scanf("%[^\n]",st5.email);  
+        scanf("%[^\n]", st5.email);
 
-        send(clientfd, &st5, sizeof(struct student),0);
+        send(clientfd, &st5, sizeof(struct student), 0);
 
-        recv(clientfd, &result, sizeof(result),0);
+        recv(clientfd, &result, sizeof(result), 0);
 
         if (!result)
         {
@@ -412,19 +418,19 @@ void admin_function(int clientfd, int option)
         scanf("%d", &fac3.id);
 
         printf("New Name of the Faculty : ");
-        scanf(" %[^\n]",fac3.name);
+        scanf(" %[^\n]", fac3.name);
         printf("New Department: ");
-        scanf("%[^\n]",fac3.department);
+        scanf("%[^\n]", fac3.department);
         printf("New Designation: ");
-        scanf("%[^\n]",fac3.designation);
+        scanf("%[^\n]", fac3.designation);
         printf("New Address: ");
-        scanf("%[^\n]",fac3.address);
+        scanf("%[^\n]", fac3.address);
         printf("New email: ");
-        scanf("%[^\n]",fac3.email);  
+        scanf("%[^\n]", fac3.email);
 
-        send(clientfd, &fac3, sizeof(struct faculty),0);
+        send(clientfd, &fac3, sizeof(struct faculty), 0);
 
-        recv(clientfd, &result, sizeof(result),0);
+        recv(clientfd, &result, sizeof(result), 0);
 
         if (!result)
         {
@@ -437,9 +443,9 @@ void admin_function(int clientfd, int option)
         menu_choice(clientfd);
         break;
     case 9:
-        send(clientfd, &option, sizeof(int),0);
-            printf("\nThank You For using Academia!\n");
-            exit(0);
+        send(clientfd, &option, sizeof(int), 0);
+        printf("\nThank You For using Academia!\n");
+        exit(0);
         break;
     default:
         printf("Invaid Choice!\n");
@@ -450,23 +456,104 @@ void admin_function(int clientfd, int option)
 void faculty_function(int clientfd, int option)
 {
     int id;
-    switch(option)
+    switch (option)
     {
-        case 1:
-            break;
-        case 2:
-            break;
-        case 3:
-            break;
-        case 4:
-            break;
-        case 5:
-            break;
-        case 6:
-            break;
-        default:
-            printf("Invalid choice!\n");
-            menu_choice(clientfd);
-            break;
+    case 1:
+        int count;
+        // int len;
+        // bool result;
+        send(clientfd, &option, sizeof(int),0);
+
+        struct course c2;
+        char facultyid[10];
+        getchar();
+        printf("Enter your faculty login ID: ");
+        scanf("%[^\n]", facultyid);
+        getchar();
+        printf("Entered Faculty ID : %s\n\n", facultyid);
+
+        send(clientfd, facultyid, sizeof(facultyid),0);
+
+        // len = read(sd, &searchedCourse, sizeof(struct faculty));
+
+        // if (len == 0)
+        // {
+        //     printf("Please re-check the Course ID!\n\n");
+        // }
+        // else
+        // {
+        //     printf("User ID : %d\n", searchFaculty.userID);
+        //     printf("Name : %s\n\n", searchFaculty.name);
+        // }
+        recv(clientfd, &count, sizeof(int),0);
+
+        printf("You are currently offering %d courses.\n", count);
+        for (int i = 0; i < count; i++)
+        {
+            recv(clientfd, &c2, sizeof(struct course),0);
+            printf("\nCourse ID: %d", c2.id);
+            printf("\nCourse Name: %s", c2.name);
+            //printf("\n");
+        }
+        printf("\nHELLO");
+        menu_choice(clientfd);
+        break;
+    case 2:
+        bool result;
+
+        char rdBuff[1000];
+        bzero(rdBuff, sizeof(rdBuff));
+
+        send(clientfd, &option, sizeof(int), 0);
+        struct course c1;
+        getchar();
+        printf("Enter name of the course");
+        scanf("%[^\n]", c1.name);
+        getchar();
+        printf("Enter your faculty login ID : ");
+        scanf("%[^\n]", c1.facultyloginid);
+        getchar();
+        printf("Enter the department :");
+        scanf("%[^\n]", c1.department);
+        getchar();
+        int seats, creds;
+        printf("Enter number of seats : ");
+        scanf("%d", &seats);
+        getchar();
+        printf("Enter no.of credits:");
+        scanf("%d", &creds);
+        //getchar();
+        //c1.credits = creds;
+        //c1.no_of_seats = seats;
+        //c1.no_of_available_seats = seats;
+        printf("Hello");
+        send(clientfd, &c1, sizeof(struct course), 0);
+        recv(clientfd, rdBuff, sizeof(rdBuff), 0);
+        recv(clientfd, &result, sizeof(result), 0);
+        strcpy(c1.status, "ACTIVE");
+
+        if (!result)
+        {
+            printf("Error in adding course,please re-check if you entered details correctly!\n\n");
+        }
+        else
+        {
+            printf("Succesfully added the course!\n\n");
+        }
+        printf("%s\n", rdBuff);
+        menu_choice(clientfd);
+        break;
+    case 3:
+        break;
+    case 4:
+        break;
+    case 5:
+        break;
+    case 6:
+        break;
+    default:
+        printf("Invalid choice!\n");
+        menu_choice(clientfd);
+        break;
     }
 }
