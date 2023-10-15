@@ -23,6 +23,7 @@ void faculty_login(int sockfd);
 void student_login(int sockfd);
 void admin_function(int clientfd, int option);
 void faculty_function(int clientfd, int option);
+void student_function(int clientfd, int option);
 int choice1;
 int menu_choice(int);
 int main()
@@ -96,7 +97,7 @@ int student_menu(int sockfd)
     printf("4. View Enrolled courses\n5. Change Password\n6. Logout and Exit");
     printf("\n\nEnter your choice ");
     scanf("%d", &option);
-    // admin_functions(choice);
+    student_function(sockfd, option);
     return option;
 }
 int faculty_menu(int sockfd)
@@ -235,7 +236,7 @@ void admin_function(int clientfd, int option)
         scanf(" %[^\n]", st1.address);
         printf("Enter student email:");
         scanf(" %[^\n]", st1.email);
-        strcpy(st1.password,"999");
+        strcpy(st1.password, "999");
         send(clientfd, &option, sizeof(option), 0);
         send(clientfd, &st1, sizeof(struct student), 0);
         recv(clientfd, &st1.id, sizeof(st1.id), 0);
@@ -276,7 +277,8 @@ void admin_function(int clientfd, int option)
             printf("Address: %s\n", st2.address);
             printf("Email: %s\n", st2.email);
             printf("Status : %s\n\n", st2.status);
-            printf("LoginID=%s",st2.loginid);
+            printf("LoginID=%s", st2.loginid);
+            printf("Password: %s", st2.password);
         }
         menu_choice(clientfd);
         break;
@@ -293,7 +295,7 @@ void admin_function(int clientfd, int option)
         scanf(" %[^\n]", fac.address);
         printf("Enter faculty email:");
         scanf(" %[^\n]", fac.email);
-        strcpy(fac.password,"000");
+        strcpy(fac.password, "000");
         send(clientfd, &option, sizeof(option), 0);
         send(clientfd, &fac, sizeof(struct faculty), 0);
         recv(clientfd, &id, sizeof(id), 0);
@@ -331,7 +333,7 @@ void admin_function(int clientfd, int option)
             printf("Name : %s\n", fac2.name);
             printf("Faculty Department : %s\n", fac2.department);
             printf("Faculty Designation: %s\n", fac2.designation);
-            printf("Login ID: %s\n\n",fac2.loginid);
+            printf("Login ID: %s\n\n", fac2.loginid);
             printf("Password: %s\n", fac2.password);
         }
         menu_choice(clientfd);
@@ -364,9 +366,9 @@ void admin_function(int clientfd, int option)
         printf("Enter the Student User ID to be blocked : ");
         scanf("%d", &st4.id);
 
-        write(clientfd, &st4, sizeof(struct student));
+        send(clientfd, &st4, sizeof(struct student), 0);
 
-        read(clientfd, &result, sizeof(result));
+        recv(clientfd, &result, sizeof(result), 0);
         if (!result)
         {
             printf("Error blocking student,please re-check the User ID!\n\n");
@@ -379,7 +381,7 @@ void admin_function(int clientfd, int option)
         menu_choice(clientfd);
         break;
     case 7:
-        write(clientfd, &option, sizeof(int));
+        send(clientfd, &option, sizeof(int), 0);
 
         struct student st5;
         printf("Enter the Student User ID to be modified : ");
@@ -462,7 +464,7 @@ void faculty_function(int clientfd, int option)
         int count;
         // int len;
         // bool result;
-        send(clientfd, &option, sizeof(int),0);
+        send(clientfd, &option, sizeof(int), 0);
 
         struct course c2;
         char facultyid[10];
@@ -472,28 +474,17 @@ void faculty_function(int clientfd, int option)
         getchar();
         printf("Entered Faculty ID : %s\n\n", facultyid);
 
-        send(clientfd, facultyid, sizeof(facultyid),0);
+        send(clientfd, facultyid, sizeof(facultyid), 0);
 
-        // len = read(sd, &searchedCourse, sizeof(struct faculty));
-
-        // if (len == 0)
-        // {
-        //     printf("Please re-check the Course ID!\n\n");
-        // }
-        // else
-        // {
-        //     printf("User ID : %d\n", searchFaculty.userID);
-        //     printf("Name : %s\n\n", searchFaculty.name);
-        // }
-        recv(clientfd, &count, sizeof(int),0);
+        recv(clientfd, &count, sizeof(int), 0);
 
         printf("You are currently offering %d courses.\n", count);
         for (int i = 0; i < count; i++)
         {
-            recv(clientfd, &c2, sizeof(struct course),0);
+            recv(clientfd, &c2, sizeof(struct course), 0);
             printf("\nCourse ID: %d", c2.id);
             printf("\nCourse Name: %s", c2.name);
-            //printf("\n");
+            // printf("\n");
         }
         printf("\nHELLO");
         menu_choice(clientfd);
@@ -522,10 +513,10 @@ void faculty_function(int clientfd, int option)
         getchar();
         printf("Enter no.of credits:");
         scanf("%d", &creds);
-        //getchar();
-        //c1.credits = creds;
-        //c1.no_of_seats = seats;
-        //c1.no_of_available_seats = seats;
+        // getchar();
+        c1.credits = creds;
+        c1.no_of_seats = seats;
+        c1.no_of_available_seats = seats;
         printf("Hello");
         send(clientfd, &c1, sizeof(struct course), 0);
         recv(clientfd, rdBuff, sizeof(rdBuff), 0);
@@ -544,10 +535,169 @@ void faculty_function(int clientfd, int option)
         menu_choice(clientfd);
         break;
     case 3:
+        send(clientfd, &option, sizeof(option), 0);
+        int courseID;
+        printf("Enter the course ID to delete: ");
+        scanf("%d", &courseID);
+        printf("Entered Course ID : %d\n\n", courseID);
+
+        send(clientfd, &courseID, sizeof(int),0);
+        recv(clientfd, &result,sizeof(result),0);
+        if(result==true)
+        {
+            printf("Course deleted successfully.\n\n");
+        }
+        else
+        {
+            printf("Unable to remove Course:\n\n");
+        }
+        
+
+        menu_choice(clientfd);
         break;
     case 4:
         break;
     case 5:
+        struct faculty fac1;
+        send(clientfd, &option, sizeof(int), 0);
+        printf("Enter the Faculty login ID : ");
+        scanf("%s", fac1.loginid);
+        printf("\nEnter new Password(max 10 characters) : ");
+        char *pass = getpass("");
+        strcpy(fac1.password, pass);
+
+        send(clientfd, &fac1, sizeof(struct faculty), 0);
+        recv(clientfd, &result, sizeof(result), 0);
+        if (!result)
+        {
+            printf("Error changing the faculty password,please re-check the login ID!\n\n");
+        }
+        else
+        {
+            printf("\nSuccessfully changed the password!\n\n");
+        }
+        menu_choice(clientfd);
+        break;
+    case 6:
+        break;
+    default:
+        printf("Invalid choice!\n");
+        menu_choice(clientfd);
+        break;
+    }
+}
+void student_function(int clientfd, int option)
+{
+    bool result;
+    switch (option)
+    {
+    case 1:
+        send(clientfd, &option, sizeof(int), 0);
+        int count;
+        struct course c1;
+        recv(clientfd, &count, sizeof(int), 0);
+        printf("\nTotal available courses are %d.\n", count);
+        for (int i = 0; i < count; i++)
+        {
+            recv(clientfd, &c1, sizeof(struct course), 0);
+            printf("\nCourse ID: %d", c1.id);
+            printf("\nCourse Name: %s", c1.name);
+            printf("\nAvailable Seats: %d", c1.no_of_available_seats);
+            printf("\n");
+        }
+        printf("\n");
+        menu_choice(clientfd);
+        break;
+    case 2:
+        int available_seats;
+        send(clientfd, &option, sizeof(int), 0);
+        struct enrollment enroll;
+        printf("Enter your student ID : ");
+        scanf("%d", &enroll.stid);
+        printf("Enter Course ID to enroll : ");
+        scanf("%d", &enroll.cid);
+        strcpy(enroll.status, "ACTIVE");
+
+        send(clientfd, &enroll, sizeof(struct enrollment), 0);
+        recv(clientfd, &available_seats, sizeof(int), 0);
+        printf("\nNumber of available seats: %d\n", available_seats);
+
+        recv(clientfd, &result, sizeof(result), 0);
+        if (result == true)
+        {
+            printf("Successfully enrolled in course!\n\n");
+        }
+        else
+        {
+            printf("Unable to enroll!\n\n");
+        }
+
+        menu_choice(clientfd);
+
+        break;
+    case 3:
+        send(clientfd, &option, sizeof(int), 0);
+        struct enrollment enroll1;
+        printf("Enter your student ID : ");
+        scanf("%d", &enroll1.stid);
+        printf("Enter Course ID of course you wish to drop : ");
+        scanf("%d", &enroll1.cid);
+        send(clientfd, &enroll1, sizeof(struct enrollment), 0);
+        recv(clientfd, &result, sizeof(result), 0);
+        if (result == true)
+        {
+            printf("Successfully dropped the course!\n\n");
+        }
+        else
+        {
+            printf("Unable to drop!\n\n");
+        }
+
+        menu_choice(clientfd);
+        break;
+    case 4:
+        count = 0;
+        send(clientfd, &option, sizeof(int), 0);
+        struct enrollment enroll2;
+        int studentID;
+        printf("Enter your Student ID: ");
+        scanf("%d", &studentID);
+        send(clientfd, &studentID, sizeof(int), 0);
+        recv(clientfd, &count, sizeof(int), 0);
+        printf("\nYou are currently enrolled in %d courses.\n", count);
+        for (int i = 0; i < count; i++)
+        {
+            recv(clientfd, &enroll2, sizeof(struct enrollment), 0);
+            printf("\nCourse ID: %d", enroll2.cid);
+            // printf("\nCurse name: %s",enroll2.name);
+            printf("\n");
+        }
+        printf("\n");
+        menu_choice(clientfd);
+        break;
+    case 5:
+
+        send(clientfd, &option, sizeof(int), 0);
+        struct student st1;
+        printf("Enter the Student User ID to change password : ");
+        scanf("%s", st1.loginid);
+
+        printf("New Password(max 10 characters) : ");
+        char *pass = getpass("");
+        strcpy(st1.password, pass);
+
+        send(clientfd, &st1, sizeof(struct student), 0);
+        recv(clientfd, &result, sizeof(result), 0);
+        if (!result)
+        {
+            printf("Error changing the password,please re-check the User ID!\n\n");
+        }
+        else
+        {
+            printf("\nSuccessfully changed the password!\n\n");
+        }
+        menu_choice(clientfd);
+        return;
         break;
     case 6:
         break;
