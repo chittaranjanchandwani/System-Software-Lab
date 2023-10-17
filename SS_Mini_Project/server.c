@@ -39,6 +39,9 @@ bool enrollStudent(struct enrollment record, int sd);
 void dropCourse(struct enrollment enroll, int sd);
 void viewEnrolledCourses(int studentID, int sd);
 bool deleteCourse(int courseID, int sd);
+bool removeAllEnrollments(int cid);
+bool unenrollLastStudents(struct course currCourse);
+bool updateCourseDetails(struct course modCourse);
 int main()
 {
 	int socket_fd_server, socket_fd_client;
@@ -228,8 +231,13 @@ int client(int socket_fd_client)
 				int courseid;
 				recv(socket_fd_client,&courseid,sizeof(int),0);
 				res=deleteCourse( courseid, socket_fd_client);
+				send(socket_fd_client,&res,sizeof(res),0);
 				break;
 			case 4:
+				struct course c2;
+                recv(socket_fd_client, &c2, sizeof(struct course),0);
+                res = updateCourseDetails(c2);
+                send(socket_fd_client, &res, sizeof(res),0);
 				break;
 			case 5:
 				struct faculty fac1;
@@ -408,7 +416,7 @@ bool validateStudent(struct student user)
 	}
 	lseek(fd, (i - 1) * sizeof(struct student), SEEK_SET);
 	read(fd, &temp, sizeof(struct student));
-	if ((strcmp(temp.loginid, user.loginid) == 0) && (strcmp(temp.password, user.password) == 0))
+	if ((strcmp(temp.loginid, user.loginid) == 0) && (strcmp(temp.password, user.password) == 0) && (strcmp(temp.status,"ACTIVE")==0))
 	{
 		result = true;
 	}
@@ -586,7 +594,7 @@ struct student searchStudentRecord(int ID)
 	struct flock lock;
 	lock.l_type = F_RDLCK;
 	lock.l_whence = SEEK_SET;
-	lock.l_start = (i) * sizeof(struct student);
+	lock.l_start = (i-1) * sizeof(struct student);
 	lock.l_len = sizeof(struct student);
 	lock.l_pid = getpid();
 
@@ -599,7 +607,6 @@ struct student searchStudentRecord(int ID)
 
 	lseek(fd, (i - 1) * sizeof(struct student), SEEK_SET);
 	read(fd, &st, sizeof(struct student));
-
 	lock.l_type = F_UNLCK;
 	status = fcntl(fd, F_SETLK, &lock);
 	if (status == -1)
@@ -607,9 +614,19 @@ struct student searchStudentRecord(int ID)
 		perror("Error while unlocking student record");
 		exit(EXIT_FAILURE);
 	}
+	if(st.id==i)
+	{
+		close(fd);
+		return st;
+	}
+	else
+	{
+		exit(EXIT_FAILURE);
+	}
+	
 
 	close(fd);
-	return st;
+	//return st;
 }
 struct faculty searchFacultyRecord(int ID)
 {
@@ -621,7 +638,7 @@ struct faculty searchFacultyRecord(int ID)
 	struct flock lock;
 	lock.l_type = F_RDLCK;
 	lock.l_whence = SEEK_SET;
-	lock.l_start = (i) * sizeof(struct faculty);
+	lock.l_start = (i-1) * sizeof(struct faculty);
 	lock.l_len = sizeof(struct faculty);
 	lock.l_pid = getpid();
 
@@ -642,9 +659,17 @@ struct faculty searchFacultyRecord(int ID)
 		perror("Error while unlocking student record");
 		exit(EXIT_FAILURE);
 	}
+	if(fac.id==i)
+	{
+		close(fd);
+		return fac;
+	}
+	else{
+		exit(EXIT_FAILURE);
+	}
 
 	close(fd);
-	return fac;
+	//return fac;
 }
 bool activateStudent(struct student st)
 {
@@ -656,7 +681,7 @@ bool activateStudent(struct student st)
 	struct flock lock;
 	lock.l_type = F_WRLCK;
 	lock.l_whence = SEEK_SET;
-	lock.l_start = (i) * sizeof(struct student);
+	lock.l_start = (i-1) * sizeof(struct student);
 	lock.l_len = sizeof(struct student);
 	lock.l_pid = getpid();
 
@@ -684,7 +709,12 @@ bool activateStudent(struct student st)
 		result = false;
 	}
 	lock.l_type = F_UNLCK;
-	fcntl(fd, F_SETLK, &lock);
+	status = fcntl(fd, F_SETLK, &lock);
+	if (status == -1)
+	{
+		perror("Error while unlocking student record");
+		exit(EXIT_FAILURE);
+	}
 
 	close(fd);
 	return result;
@@ -699,7 +729,7 @@ bool blockStudent(struct student st)
 	struct flock lock;
 	lock.l_type = F_WRLCK;
 	lock.l_whence = SEEK_SET;
-	lock.l_start = (i) * sizeof(struct student);
+	lock.l_start = (i-1) * sizeof(struct student);
 	lock.l_len = sizeof(struct student);
 	lock.l_pid = getpid();
 
@@ -727,7 +757,12 @@ bool blockStudent(struct student st)
 		result = false;
 	}
 	lock.l_type = F_UNLCK;
-	fcntl(fd, F_SETLK, &lock);
+	status = fcntl(fd, F_SETLK, &lock);
+	if (status == -1)
+	{
+		perror("Error while unlocking student record");
+		exit(EXIT_FAILURE);
+	}
 
 	close(fd);
 	return result;
@@ -761,6 +796,7 @@ bool updateStudent(struct student st)
 	user.age = st.age;
 	strcpy(user.address, st.address);
 	strcpy(user.email, st.email);
+	strcpy(user.status,"ACTIVE");
 	lseek(fd, (-1) * sizeof(struct student), SEEK_CUR);
 	int writeBytes = write(fd, &user, sizeof(struct student));
 	if (writeBytes != 0)
@@ -774,7 +810,12 @@ bool updateStudent(struct student st)
 	}
 
 	lock.l_type = F_UNLCK;
-	fcntl(fd, F_SETLK, &lock);
+	status = fcntl(fd, F_SETLK, &lock);
+	if (status == -1)
+	{
+		perror("Error while unlocking student record");
+		exit(EXIT_FAILURE);
+	}
 
 	close(fd);
 	return result;
@@ -823,7 +864,12 @@ bool updateFaculty(struct faculty fac)
 	}
 
 	lock.l_type = F_UNLCK;
-	fcntl(fd, F_SETLK, &lock);
+	status = fcntl(fd, F_SETLK, &lock);
+	if (status == -1)
+	{
+		perror("Error while unlocking student record");
+		exit(EXIT_FAILURE);
+	}
 
 	close(fd);
 	return result;
@@ -857,9 +903,11 @@ bool addNewCourse(struct course record, int sd)
 	{
 		struct flock lock;
 		lock.l_type = F_WRLCK;
-		lock.l_whence = SEEK_END;
-		lock.l_start = (-1) * sizeof(struct course);
-		lock.l_len = sizeof(struct course);
+		lock.l_whence = SEEK_SET;
+		lock.l_start=0;
+		lock.l_len=0;
+		//lock.l_start = (-1) * sizeof(struct course);
+		//lock.l_len = sizeof(struct course);
 		lock.l_pid = getpid();
 
 		status = fcntl(fd, F_SETLKW, &lock);
@@ -914,7 +962,7 @@ void viewOfferedCourses(char facultyID[10], int sd)
 	// count number of course offered by faculty
 	while ((bytesRead = read(fd, &c3, sizeof(struct course))) > 0)
 	{
-		if (strcmp(fID, c3.facultyloginid) == 0)
+		if (strcmp(fID, c3.facultyloginid) == 0 && strcmp(c3.status,"ACTIVE")==0)
 		{
 			count++;
 		}
@@ -929,7 +977,7 @@ void viewOfferedCourses(char facultyID[10], int sd)
 	while ((bytesRead = read(fd, &c3, sizeof(struct course))) > 0)
 	{
 
-		if (strcmp(fID, c3.facultyloginid) == 0)
+		if (strcmp(fID, c3.facultyloginid) == 0 && strcmp(c3.status,"ACTIVE")==0);
 		{
 			send(sd, &c3, sizeof(struct course), 0);
 		}
@@ -1060,10 +1108,17 @@ void viewAllCourses(int sd)
                 return;
         }
 
-        // count number of course offered by faculty
         while ((bytesRead = read(fd, &c, sizeof(struct course))) > 0)
         {
-                count++;
+                if(strcmp(c.status,"ACTIVE")==0)
+				{
+					count++;
+				}
+				else
+				{
+					continue;
+				}
+				
         }
 
         // send this count to client
@@ -1081,7 +1136,15 @@ void viewAllCourses(int sd)
         // send course details to client
         while ((bytesRead = read(fd, &c, sizeof(struct course))) > 0)
         {
-                send(sd, &c, sizeof(struct course),0);
+                if(strcmp(c.status,"ACTIVE")==0)
+				{
+					send(sd, &c, sizeof(struct course),0);
+				}
+				else
+				{
+					continue;
+				}
+				
         }
 
         lock.l_type = F_UNLCK;
@@ -1092,11 +1155,12 @@ void viewAllCourses(int sd)
 bool enrollStudent(struct enrollment record, int sd)
 {
         bool result = false;
-
+		printf("record id: %d\n",record.cid);
         // checking if seats are available
         int courseid = record.cid;
         int seats = availableSeats(courseid);
-
+		ssize_t bytesRead;
+		struct enrollment en;
         send(sd, &seats, sizeof(int),0);
         // if seats available add entry
         if (seats > 0)
@@ -1121,8 +1185,20 @@ bool enrollStudent(struct enrollment record, int sd)
                         close(fd);
                         return false;
                 }
-
+				while(bytesRead=read(fd,&en,sizeof(struct enrollment))>0)
+				{
+					if(record.stid==en.stid && record.cid==en.cid && strcmp(en.status,"ACTIVE")==0)
+					{
+						return false;
+					}
+				}
                 int j = write(fd, &record, sizeof(struct enrollment));
+				if(j<=0)
+				{
+					perror("error in write");
+					exit(EXIT_FAILURE);
+				}
+
 
                 reduceAvailableSeats(courseid);
 
@@ -1200,6 +1276,7 @@ void reduceAvailableSeats(int cid)
         lock.l_whence = SEEK_SET;
         lock.l_start = 0;
         lock.l_len = 0;
+		lock.l_pid = getpid();
 
         if (fcntl(fd, F_SETLKW, &lock) == -1)
         {
@@ -1213,7 +1290,7 @@ void reduceAvailableSeats(int cid)
                 if (currCourse.id == cid)
                 {
                         currCourse.no_of_available_seats = currCourse.no_of_available_seats - 1;
-                        lseek(fd, -sizeof(struct course), SEEK_CUR);
+                        lseek(fd, (-1)*sizeof(struct course), SEEK_CUR);
                         write(fd, &currCourse, sizeof(struct course));
                         break;
                 }
@@ -1242,6 +1319,7 @@ void dropCourse(struct enrollment enroll, int sd)
         lock.l_whence = SEEK_SET;
         lock.l_start = 0;
         lock.l_len = 0;
+		lock.l_pid = getpid();
 
         if (fcntl(fd, F_SETLKW, &lock) == -1)
         {
@@ -1291,6 +1369,7 @@ bool increaseAvailableSeats(int courseid)
         lock.l_whence = SEEK_SET;
         lock.l_start = 0;
         lock.l_len = 0;
+		lock.l_pid = getpid();
 
         if (fcntl(fd, F_SETLKW, &lock) == -1)
         {
@@ -1340,6 +1419,7 @@ void viewEnrolledCourses(int studentID, int sd)
         lock.l_whence = SEEK_SET;
         lock.l_start = 0;
         lock.l_len = 0;
+		lock.l_pid = getpid();
 
         if (fcntl(fd, F_SETLKW, &lock) == -1)
         {
@@ -1348,7 +1428,6 @@ void viewEnrolledCourses(int studentID, int sd)
                 return;
         }
 
-        // count number of course offered by faculty
         while ((bytesRead = read(fd, &buffer, sizeof(struct enrollment))) > 0)
         {
                 if (buffer.stid == sID && strcmp(buffer.status,"ACTIVE")==0)
@@ -1368,7 +1447,8 @@ void viewEnrolledCourses(int studentID, int sd)
         {
                 if (buffer.stid == sID)
                 {
-                        send(sd, &buffer, sizeof(struct enrollment),0);
+                        //printf("Course name:%s\n",buffer.name);
+						send(sd, &buffer, sizeof(struct enrollment),0);
                 }
         }
 
@@ -1380,25 +1460,207 @@ void viewEnrolledCourses(int studentID, int sd)
 
         close(fd);
 }
-/*bool deleteCourse(int courseID, int sd)
+bool deleteCourse(int courseID, int sd)
 {
-        int fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/enroll.data", O_RDWR, 0744);
+        int fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/course.data", O_RDWR, 0744);
         
         int cID = courseID;
         struct course buffer;
         ssize_t bytesRead;
-        bool found = false;
+        bool result = false;
+		struct flock lock;
+        lock.l_type = F_WRLCK;
+        lock.l_whence = SEEK_SET;
+        lock.l_start = 0;
+        lock.l_len = 0;
+		lock.l_pid = getpid();
 
+        if (fcntl(fd, F_SETLKW, &lock) == -1)
+        {
+                perror("Error locking file");
+                close(fd);
+                return false;
+        }
         // sending course details to client
         while ((bytesRead = read(fd, &buffer, sizeof(struct course))) > 0)
         {
-                if (buffer.courseID != cID)
+                if (buffer.id == cID)
                 {
-                        lseek(tmp_fd, 0, SEEK_END);
-                        write(tmp_fd, &buffer, sizeof(struct course));
+                    strcpy(buffer.status,"BLOCKED");
+					lseek(fd, -sizeof(struct course), SEEK_CUR);
+                    write(fd, &buffer, sizeof(struct course));
+					result=true;
+					break;    
                 }
         }
-        removeAllEnrollments(cID);
+		lock.l_type = F_UNLCK;
+        if (fcntl(fd, F_SETLK, &lock) == -1)
+        {
+                perror("Error unlocking file");
+        }
+        result=removeAllEnrollments(cID);
         close(fd);
-        close(tmp_fd);
-}*/
+		return result;
+}
+bool removeAllEnrollments(int cid)
+{
+        struct enrollment buffer;
+        ssize_t bytesRead;
+		bool result;
+        int fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/enroll.data", O_RDWR, 0744);
+        struct flock lock;
+        memset(&lock, 0, sizeof(lock));
+        lock.l_type = F_WRLCK;
+        lock.l_whence = SEEK_SET;
+        lock.l_start = 0;
+        lock.l_len = 0;
+		lock.l_pid = getpid();
+
+        if (fcntl(fd, F_SETLKW, &lock) == -1)
+        {
+                perror("Error locking Enroll.data");
+                close(fd);
+                return false;
+        }
+
+        // sending course details to client
+        while ((bytesRead = read(fd, &buffer, sizeof(struct enrollment))) > 0)
+        {
+                if (buffer.cid == cid)
+                {
+                    strcpy(buffer.status,"BLOCKED");
+					lseek(fd, -sizeof(struct enrollment), SEEK_CUR);
+                    write(fd, &buffer, sizeof(struct enrollment));
+					result=true;
+                }
+        }
+
+        lock.l_type = F_UNLCK;
+        if (fcntl(fd, F_SETLK, &lock) == -1)
+        {
+                perror("Error unlocking Enroll.data");
+				result=false;
+        }
+        close(fd);
+        return result;
+}
+bool updateCourseDetails(struct course modCourse)
+{
+        int cID = modCourse.id;
+        int fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/course.data", O_RDWR, 0744);
+        if (fd == -1)
+        {
+                perror("Error opening file for updating");
+                return false;
+        }
+
+        struct flock lock;
+        lock.l_type = F_WRLCK;
+        lock.l_whence = SEEK_SET;
+        lock.l_start = 0;
+        lock.l_len = 0;
+		lock.l_pid = getpid(); // Lock the whole file
+
+        if (fcntl(fd, F_SETLKW, &lock) == -1)
+        {
+                perror("Error locking file for updating");
+                close(fd);
+                return false;
+        }
+
+        bool result = false;
+        ssize_t bytesRead;
+        struct course currCourse;
+        while ((bytesRead = read(fd, &currCourse, sizeof(struct course))) > 0)
+        {
+                if (currCourse.id == cID)
+                {
+                        int change_in_seats = currCourse.no_of_seats - modCourse.no_of_seats;
+                        //strcpy(currCourse.name, modCourse.name);
+                        currCourse.no_of_seats = modCourse.no_of_seats;
+                        currCourse.no_of_available_seats = currCourse.no_of_available_seats - change_in_seats;
+                        if (currCourse.no_of_available_seats < 0)
+                        {
+                                currCourse.no_of_available_seats = 0;
+                                result=unenrollLastStudents(modCourse);
+                        }
+                        lseek(fd, -sizeof(struct course), SEEK_CUR);
+                        write(fd, &currCourse, sizeof(struct course));
+                        result = true;
+                }
+        }
+		 lock.l_type = F_UNLCK;
+        if (fcntl(fd, F_SETLK, &lock) == -1)
+        {
+                perror("Error unlocking Enroll.data");
+				result=false;
+        }
+        close(fd);
+        return result;
+}
+bool unenrollLastStudents(struct course currCourse)
+{
+        printf("\n\nUnenrolling students\n\n");
+        int fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/enroll.data", O_RDWR);
+        if (fd == -1)
+        {
+                perror("Error opening Enroll.data");
+                return false;
+        }
+		struct flock lock;
+        lock.l_type = F_WRLCK;
+        lock.l_whence = SEEK_SET;
+        lock.l_start = 0;
+        lock.l_len = 0; 
+		lock.l_pid = getpid();// Lock the whole file
+
+        if (fcntl(fd, F_SETLKW, &lock) == -1)
+        {
+                perror("Error locking file for updating");
+                close(fd);
+                return false;
+        }
+        struct enrollment buffer;
+        ssize_t bytesRead;
+        int remseats = currCourse.no_of_seats;
+		bool result;
+        // sending course details to client
+        while ((bytesRead = read(fd, &buffer, sizeof(struct enrollment))) > 0)
+        {
+                if (buffer.cid == currCourse.id && remseats>0 && strcmp(buffer.status,"ACTIVE"))
+                {
+                        remseats--;
+						if(remseats==0)
+						{
+							break;
+						}
+                }
+                else 
+				{
+					continue;
+				}
+        }
+		while ((bytesRead = read(fd, &buffer, sizeof(struct enrollment))) > 0)
+        {
+                if (buffer.cid == currCourse.id && strcmp(buffer.status,"ACTIVE"))
+                {
+                        strcpy(buffer.status,"BLOCKED");
+						lseek(fd, -sizeof(struct enrollment), SEEK_CUR);
+                    	write(fd, &buffer, sizeof(struct enrollment));
+						result=true;
+                }
+                else 
+				{
+					continue;
+				}
+        }
+		lock.l_type = F_UNLCK;
+        if (fcntl(fd, F_SETLK, &lock) == -1)
+        {
+                perror("Error unlocking Enroll.data");
+				result=false;
+        }
+        close(fd);
+
+    return result;
+}

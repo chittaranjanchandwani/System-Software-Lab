@@ -278,7 +278,7 @@ void admin_function(int clientfd, int option)
             printf("Email: %s\n", st2.email);
             printf("Status : %s\n\n", st2.status);
             printf("LoginID=%s", st2.loginid);
-            printf("Password: %s", st2.password);
+            //printf("Password: %s", st2.password);
         }
         menu_choice(clientfd);
         break;
@@ -309,7 +309,6 @@ void admin_function(int clientfd, int option)
         {
             printf("\nFaculty adding unsuccessful\n");
         }
-        // recv(clientfd, &choice_prev, sizeof(choice_prev),0);
         menu_choice(clientfd);
         break;
     case 4:
@@ -334,7 +333,7 @@ void admin_function(int clientfd, int option)
             printf("Faculty Department : %s\n", fac2.department);
             printf("Faculty Designation: %s\n", fac2.designation);
             printf("Login ID: %s\n\n", fac2.loginid);
-            printf("Password: %s\n", fac2.password);
+            //printf("Password: %s\n", fac2.password);
         }
         menu_choice(clientfd);
         break;
@@ -421,12 +420,16 @@ void admin_function(int clientfd, int option)
 
         printf("New Name of the Faculty : ");
         scanf(" %[^\n]", fac3.name);
+        getchar();
         printf("New Department: ");
         scanf("%[^\n]", fac3.department);
+        getchar();
         printf("New Designation: ");
         scanf("%[^\n]", fac3.designation);
+        getchar();
         printf("New Address: ");
         scanf("%[^\n]", fac3.address);
+        getchar();
         printf("New email: ");
         scanf("%[^\n]", fac3.email);
 
@@ -440,7 +443,7 @@ void admin_function(int clientfd, int option)
         }
         else
         {
-            printf("Succesfully modified the student details!\n\n");
+            printf("Succesfully modified the faculty details!\n\n");
         }
         menu_choice(clientfd);
         break;
@@ -484,9 +487,9 @@ void faculty_function(int clientfd, int option)
             recv(clientfd, &c2, sizeof(struct course), 0);
             printf("\nCourse ID: %d", c2.id);
             printf("\nCourse Name: %s", c2.name);
-            // printf("\n");
+            printf("\n");
         }
-        printf("\nHELLO");
+        //printf("\nHELLO");
         menu_choice(clientfd);
         break;
     case 2:
@@ -517,11 +520,12 @@ void faculty_function(int clientfd, int option)
         c1.credits = creds;
         c1.no_of_seats = seats;
         c1.no_of_available_seats = seats;
-        printf("Hello");
+        strcpy(c1.status, "ACTIVE");
+        //printf("Hello");
         send(clientfd, &c1, sizeof(struct course), 0);
         recv(clientfd, rdBuff, sizeof(rdBuff), 0);
         recv(clientfd, &result, sizeof(result), 0);
-        strcpy(c1.status, "ACTIVE");
+        
 
         if (!result)
         {
@@ -541,9 +545,9 @@ void faculty_function(int clientfd, int option)
         scanf("%d", &courseID);
         printf("Entered Course ID : %d\n\n", courseID);
 
-        send(clientfd, &courseID, sizeof(int),0);
-        recv(clientfd, &result,sizeof(result),0);
-        if(result==true)
+        send(clientfd, &courseID, sizeof(int), 0);
+        recv(clientfd, &result, sizeof(result), 0);
+        if (result == true)
         {
             printf("Course deleted successfully.\n\n");
         }
@@ -551,11 +555,31 @@ void faculty_function(int clientfd, int option)
         {
             printf("Unable to remove Course:\n\n");
         }
-        
 
         menu_choice(clientfd);
         break;
     case 4:
+
+        send(clientfd, &option, sizeof(int),0);
+        struct course c3;
+
+        printf("Enter the Course ID to be modified : ");
+        scanf("%d", &c3.id);
+        printf("Enter new number of available seats : ");
+        scanf("%d", &c3.no_of_seats);
+
+        send(clientfd, &c3, sizeof(struct course),0);
+        recv(clientfd, &result, sizeof(result),0);
+        if (!result)
+        {
+            printf("Error modifying the course details,please re-check the course ID!\n\n");
+        }
+        else
+        {
+            printf("\nSuccessfully modified the course details!\n\n");
+        }
+
+        menu_choice(clientfd);
         break;
     case 5:
         struct faculty fac1;
@@ -579,6 +603,8 @@ void faculty_function(int clientfd, int option)
         menu_choice(clientfd);
         break;
     case 6:
+        printf("\nThank You For using Academia!\n");
+        exit(0);
         break;
     default:
         printf("Invalid choice!\n");
@@ -616,6 +642,7 @@ void student_function(int clientfd, int option)
         scanf("%d", &enroll.stid);
         printf("Enter Course ID to enroll : ");
         scanf("%d", &enroll.cid);
+        getchar();
         strcpy(enroll.status, "ACTIVE");
 
         send(clientfd, &enroll, sizeof(struct enrollment), 0);
@@ -669,7 +696,7 @@ void student_function(int clientfd, int option)
         {
             recv(clientfd, &enroll2, sizeof(struct enrollment), 0);
             printf("\nCourse ID: %d", enroll2.cid);
-            // printf("\nCurse name: %s",enroll2.name);
+            //printf("\nCourse name: %s",enroll2.name);
             printf("\n");
         }
         printf("\n");
@@ -700,6 +727,8 @@ void student_function(int clientfd, int option)
         return;
         break;
     case 6:
+        printf("\nThank You For using Academia!\n");
+        exit(0);
         break;
     default:
         printf("Invalid choice!\n");
