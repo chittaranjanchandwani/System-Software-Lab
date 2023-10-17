@@ -10,7 +10,7 @@ struct course
     int no_of_seats;
     int credits;
     int no_of_available_seats;
-    char courseid[6];
+    //charcourseid[6];
     char status[8];    
 };
 

@@ -3,11 +3,11 @@
 
 struct enrollment
 {
-    int id; // 0, 1, 2 ....
-    char courseid[6];
-    char studentid[6];
+    int stid; // 0, 1, 2 ....
+    int cid;
+    //char name[20];
     char status[12];
-    time_t enroll_time;    
+    //time_t enroll_time;    
 };
 
 #endif
