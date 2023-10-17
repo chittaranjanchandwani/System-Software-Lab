@@ -8,13 +8,11 @@
 #include <netinet/in.h>
 #include <stdbool.h>
 #include <errno.h>
-#include "./functions/server-constants.h"
 #include "./structures/faculty.h"
 #include "./structures/student.h"
 #include "./structures/course.h"
 #include "./structures/enrollment.h"
 #include "./structures/admin.h"
-// #include"./functions/menu.c"
 int client(int socket_fd_client);
 bool validateAdmin(struct admin user);
 bool validateFaculty(struct faculty user);
@@ -72,7 +70,7 @@ int main()
 		close(socket_fd_server);
 		return 1;
 	}
-	printf("Listening for Connerctions\n");
+	printf("Listening for Connections\n");
 	while (1)
 	{
 		socket_fd_client = accept(socket_fd_server, (struct sockaddr *)&client_addr, &client_len);
@@ -106,7 +104,6 @@ int client(int socket_fd_client)
 {
 	int choice, option;
 	bool res;
-	// int choice,option;
 	while (1)
 	{ // for login
 		recv(socket_fd_client, &choice, sizeof(choice), 0);
@@ -116,24 +113,19 @@ int client(int socket_fd_client)
 			struct admin userAdmin;
 			struct student st;
 			struct faculty fac;
-			// char curr_loginId[25];
 			recv(socket_fd_client, &userAdmin, sizeof(struct admin), 0);
-			// strcpy(curr_loginId,curr_user.login_id);
 			res = validateAdmin(userAdmin);
 			send(socket_fd_client, &res, sizeof(res), 0);
 			break;
 		case 2:
 			struct faculty userFaculty;
-			// char curr_loginId[25];
 			recv(socket_fd_client, &userFaculty, sizeof(struct faculty), 0);
-			// strcpy(curr_loginId,curr_user.login_id);
 			res = validateFaculty(userFaculty);
 			send(socket_fd_client, &res, sizeof(res), 0);
 			break;
 		case 3:
 			struct student userStudent;
 			recv(socket_fd_client, &userStudent, sizeof(struct student), 0);
-			// strcpy(curr_loginId,curr_user.login_id);
 			res = validateStudent(userStudent);
 			send(socket_fd_client, &res, sizeof(res), 0);
 			break;
@@ -149,7 +141,6 @@ int client(int socket_fd_client)
 	while (1)
 	{
 		recv(socket_fd_client, &option, sizeof(option), 0);
-		// printf("%d", option);
 		switch (choice)
 		{
 		case 1:
@@ -223,7 +214,6 @@ int client(int socket_fd_client)
 			case 2:
 				struct course c1;
 				recv(socket_fd_client, &c1, sizeof(struct course), 0);
-				// printf("%d %s",c1.id,c1.name);
 				res = addNewCourse(c1, socket_fd_client);
 				send(socket_fd_client, &res, sizeof(res), 0);
 				break;
@@ -334,7 +324,6 @@ bool validateAdmin(struct admin user)
 		exit(EXIT_FAILURE);
 	}
 	close(fd);
-	// close(fd);
 	return result;
 }
 bool validateFaculty(struct faculty user)
@@ -362,7 +351,6 @@ bool validateFaculty(struct faculty user)
 		close(fd);
 		exit(EXIT_FAILURE);
 	}
-	// printf("val fac: %d",fl1);
 	lseek(fd, (i - 1) * sizeof(struct faculty), SEEK_SET);
 	read(fd, &temp, sizeof(struct faculty));
 
@@ -447,13 +435,7 @@ bool addStudent(int socket_fd_client, struct student st)
 	if (fd == -1 && errno == ENOENT)
 	{
 		fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/student.data", O_RDWR | O_CREAT | O_APPEND, 0744);
-		/*if (fd == -1)
-		{
-			perror("Error opening database!");
-			exit(EXIT_FAILURE);
-		}*/
 		st.id = 1;
-		// flag = 1;
 	}
 	else if (fd == -1)
 	{
@@ -491,8 +473,6 @@ bool addStudent(int socket_fd_client, struct student st)
 		}
 		st.id = prev_st.id + 1;
 	}
-	// printf("ID = %d\n", st.id);
-	// sprintf(writebuffer, "%s%d\n","Your student ID is ",st.id);
 	strcpy(st.status, "ACTIVE");
 	sprintf(st.loginid, "MT%d", st.id);
 	send(socket_fd_client, &st.id, sizeof(st.id), 0);
@@ -528,7 +508,6 @@ bool addFaculty(int socket_fd_client, struct faculty fac)
 			exit(EXIT_FAILURE);
 		}
 		fac.id = 1;
-		// flag = 1;
 	}
 	else if (fd == -1)
 	{
@@ -623,10 +602,7 @@ struct student searchStudentRecord(int ID)
 	{
 		exit(EXIT_FAILURE);
 	}
-	
-
 	close(fd);
-	//return st;
 }
 struct faculty searchFacultyRecord(int ID)
 {
@@ -669,7 +645,6 @@ struct faculty searchFacultyRecord(int ID)
 	}
 
 	close(fd);
-	//return fac;
 }
 bool activateStudent(struct student st)
 {
@@ -830,7 +805,7 @@ bool updateFaculty(struct faculty fac)
 	struct flock lock;
 	lock.l_type = F_WRLCK;
 	lock.l_whence = SEEK_SET;
-	lock.l_start = (i) * sizeof(struct faculty);
+	lock.l_start = (i-1) * sizeof(struct faculty);
 	lock.l_len = sizeof(struct faculty);
 	lock.l_pid = getpid();
 
@@ -881,16 +856,9 @@ bool addNewCourse(struct course record, int sd)
 	int status;
 	char wrBuff[1000];
 	int fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/course.data", O_RDWR, 0744);
-
-	//printf("\n fd: %d", fd);
 	if (fd == -1 && errno == ENOENT)
 	{
 		fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/course.data", O_RDWR | O_CREAT | O_APPEND, 0744);
-		/*if (fd == -1)
-		{
-			perror("Error opening database!");
-			exit(EXIT_FAILURE);
-		}*/
 		record.id = 1;
 		// flag = 1;
 	}
@@ -905,20 +873,17 @@ bool addNewCourse(struct course record, int sd)
 		lock.l_type = F_WRLCK;
 		lock.l_whence = SEEK_SET;
 		lock.l_start=0;
-		lock.l_len=0;
-		//lock.l_start = (-1) * sizeof(struct course);
-		//lock.l_len = sizeof(struct course);
+		lock.l_len=0;	
 		lock.l_pid = getpid();
 
 		status = fcntl(fd, F_SETLKW, &lock);
-		// printf("\nstatus=%d",status);
-		struct course prev_Course;
+		
 		if (status == -1)
 		{
 			perror("Error while locking");
 			exit(EXIT_FAILURE);
 		}
-
+		struct course prev_Course;
 		lseek(fd, (-1) * sizeof(struct course), SEEK_END);
 
 		read(fd, &prev_Course, sizeof(struct course));
@@ -958,7 +923,6 @@ void viewOfferedCourses(char facultyID[10], int sd)
 	strcpy(fID, facultyID);
 	// reading one by one record
 	int count = 0;
-	printf("Faculty ID to send courses : %s\n:", fID);
 	// count number of course offered by faculty
 	while ((bytesRead = read(fd, &c3, sizeof(struct course))) > 0)
 	{
@@ -967,8 +931,6 @@ void viewOfferedCourses(char facultyID[10], int sd)
 			count++;
 		}
 	}
-
-	// send this count to client
 	send(sd, &count, sizeof(int), 0);
 
 	lseek(fd, 0, SEEK_SET);
@@ -977,7 +939,7 @@ void viewOfferedCourses(char facultyID[10], int sd)
 	while ((bytesRead = read(fd, &c3, sizeof(struct course))) > 0)
 	{
 
-		if (strcmp(fID, c3.facultyloginid) == 0 && strcmp(c3.status,"ACTIVE")==0);
+		if (strcmp(fID, c3.facultyloginid) == 0 && strcmp(c3.status,"ACTIVE")==0)
 		{
 			send(sd, &c3, sizeof(struct course), 0);
 		}
@@ -1123,6 +1085,11 @@ void viewAllCourses(int sd)
 
         // send this count to client
         send(sd, &count, sizeof(int),0);
+		if (count==0)
+		{
+			return;
+		}
+		
         // reset pointer back to start
         if (lseek(fd, 0, SEEK_SET) == -1)
         {
@@ -1155,8 +1122,7 @@ void viewAllCourses(int sd)
 bool enrollStudent(struct enrollment record, int sd)
 {
         bool result = false;
-		printf("record id: %d\n",record.cid);
-        // checking if seats are available
+		// checking if seats are available
         int courseid = record.cid;
         int seats = availableSeats(courseid);
 		ssize_t bytesRead;
@@ -1307,7 +1273,7 @@ void dropCourse(struct enrollment enroll, int sd)
 {
         struct enrollment buffer;
         ssize_t bytesRead;
-
+		bool res;
         int fd = open("/home/chittaranjan-chandwani/SS_Mini_Project/enroll.data", O_RDWR, 0744);
         if (fd == -1)
         {
@@ -1331,11 +1297,12 @@ void dropCourse(struct enrollment enroll, int sd)
         // sending course details to client
         while ((bytesRead = read(fd, &buffer, sizeof(struct enrollment))) > 0)
         {
-                if (buffer.stid == enroll.stid && buffer.cid == enroll.cid)
+                if (buffer.stid == enroll.stid && buffer.cid == enroll.cid && strcmp(buffer.status,"ACTIVE")==0)
                 {
                         strcpy(buffer.status,"BLOCKED");
-						lseek(fd, -sizeof(struct enrollment), SEEK_CUR);
+						lseek(fd, (-1)*sizeof(struct enrollment), SEEK_CUR);
                         write(fd, &buffer, sizeof(struct enrollment));
+						res=true;
 						break;
 				}		
 						
@@ -1346,8 +1313,11 @@ void dropCourse(struct enrollment enroll, int sd)
         {
                 perror("Error unlocking Enroll.data");
         }
-
-        bool res=increaseAvailableSeats(enroll.cid);
+		if(res==true)
+		{
+			res=increaseAvailableSeats(enroll.cid);
+		}
+        
 		send(sd,&res,sizeof(res),0);
         close(fd);
 
@@ -1383,7 +1353,7 @@ bool increaseAvailableSeats(int courseid)
                 if (c.id == courseid)
                 {
                         c.no_of_available_seats = c.no_of_available_seats + 1;
-                        lseek(fd, -sizeof(struct course), SEEK_CUR);
+                        lseek(fd, (-1)*sizeof(struct course), SEEK_CUR);
                         write(fd, &c, sizeof(struct course));
 						result=true;
                         break;
@@ -1445,10 +1415,9 @@ void viewEnrolledCourses(int studentID, int sd)
         // sending course details to client
         while ((bytesRead = read(fd, &buffer, sizeof(struct enrollment))) > 0)
         {
-                if (buffer.stid == sID)
+                if (buffer.stid == sID && strcmp(buffer.status,"ACTIVE")==0)
                 {
-                        //printf("Course name:%s\n",buffer.name);
-						send(sd, &buffer, sizeof(struct enrollment),0);
+                    send(sd, &buffer, sizeof(struct enrollment),0);
                 }
         }
 
@@ -1487,7 +1456,7 @@ bool deleteCourse(int courseID, int sd)
                 if (buffer.id == cID)
                 {
                     strcpy(buffer.status,"BLOCKED");
-					lseek(fd, -sizeof(struct course), SEEK_CUR);
+					lseek(fd, (-1)*sizeof(struct course), SEEK_CUR);
                     write(fd, &buffer, sizeof(struct course));
 					result=true;
 					break;    
@@ -1529,7 +1498,7 @@ bool removeAllEnrollments(int cid)
                 if (buffer.cid == cid)
                 {
                     strcpy(buffer.status,"BLOCKED");
-					lseek(fd, -sizeof(struct enrollment), SEEK_CUR);
+					lseek(fd, (-1)*sizeof(struct enrollment), SEEK_CUR);
                     write(fd, &buffer, sizeof(struct enrollment));
 					result=true;
                 }
@@ -1573,10 +1542,9 @@ bool updateCourseDetails(struct course modCourse)
         struct course currCourse;
         while ((bytesRead = read(fd, &currCourse, sizeof(struct course))) > 0)
         {
-                if (currCourse.id == cID)
+                if (currCourse.id == cID && strcmp(currCourse.status,"ACTIVE")==0)
                 {
                         int change_in_seats = currCourse.no_of_seats - modCourse.no_of_seats;
-                        //strcpy(currCourse.name, modCourse.name);
                         currCourse.no_of_seats = modCourse.no_of_seats;
                         currCourse.no_of_available_seats = currCourse.no_of_available_seats - change_in_seats;
                         if (currCourse.no_of_available_seats < 0)
@@ -1584,7 +1552,7 @@ bool updateCourseDetails(struct course modCourse)
                                 currCourse.no_of_available_seats = 0;
                                 result=unenrollLastStudents(modCourse);
                         }
-                        lseek(fd, -sizeof(struct course), SEEK_CUR);
+                        lseek(fd, (-1)*sizeof(struct course), SEEK_CUR);
                         write(fd, &currCourse, sizeof(struct course));
                         result = true;
                 }
@@ -1622,17 +1590,21 @@ bool unenrollLastStudents(struct course currCourse)
         }
         struct enrollment buffer;
         ssize_t bytesRead;
-        int remseats = currCourse.no_of_seats;
+        int seats = currCourse.no_of_seats;
 		bool result;
         // sending course details to client
         while ((bytesRead = read(fd, &buffer, sizeof(struct enrollment))) > 0)
         {
-                if (buffer.cid == currCourse.id && remseats>0 && strcmp(buffer.status,"ACTIVE"))
+                if (buffer.cid == currCourse.id && seats>0 && strcmp(buffer.status,"ACTIVE"))
                 {
-                        remseats--;
-						if(remseats==0)
+                        seats--;
+						if(seats==0)
 						{
 							break;
+						}
+						else 
+						{
+							continue;
 						}
                 }
                 else 
@@ -1645,7 +1617,7 @@ bool unenrollLastStudents(struct course currCourse)
                 if (buffer.cid == currCourse.id && strcmp(buffer.status,"ACTIVE"))
                 {
                         strcpy(buffer.status,"BLOCKED");
-						lseek(fd, -sizeof(struct enrollment), SEEK_CUR);
+						lseek(fd, (-1)*sizeof(struct enrollment), SEEK_CUR);
                     	write(fd, &buffer, sizeof(struct enrollment));
 						result=true;
                 }

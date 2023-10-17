@@ -11,8 +11,6 @@
 #include "./structures/course.h"
 #include "./structures/enrollment.h"
 #include "./structures/admin.h"
-// #include"./functions/menu.c"
-// #include"./adminFunctions.c"
 int menu(int socketfd);
 int admin_menu(int sockfd);
 int faculty_menu(int sockfd);
@@ -134,7 +132,6 @@ void admin_login(int sockfd)
 {
     struct admin user;
     bool result;
-    // int choice = 1;
     printf("Login id: ");
     scanf("%s", user.loginid);
     printf("Password: ");
@@ -164,7 +161,6 @@ void faculty_login(int sockfd)
 {
     struct faculty user;
     bool result;
-    // int choice = 2;
     printf("\nLogin id: ");
     scanf("%s", user.loginid);
     printf("Password: ");
@@ -194,7 +190,6 @@ void student_login(int sockfd)
 {
     struct student user;
     bool result;
-    // int choice = 2;
     printf("Login id: ");
     scanf("%s", user.loginid);
     printf("Password: ");
@@ -250,7 +245,7 @@ void admin_function(int clientfd, int option)
         {
             printf("\nStudent adding unsuccessful\n");
         }
-        // recv(clientfd, &choice_prev, sizeof(choice_prev),0);
+
         menu_choice(clientfd);
         break;
     case 2:
@@ -278,7 +273,6 @@ void admin_function(int clientfd, int option)
             printf("Email: %s\n", st2.email);
             printf("Status : %s\n\n", st2.status);
             printf("LoginID=%s", st2.loginid);
-            //printf("Password: %s", st2.password);
         }
         menu_choice(clientfd);
         break;
@@ -333,7 +327,6 @@ void admin_function(int clientfd, int option)
             printf("Faculty Department : %s\n", fac2.department);
             printf("Faculty Designation: %s\n", fac2.designation);
             printf("Login ID: %s\n\n", fac2.loginid);
-            //printf("Password: %s\n", fac2.password);
         }
         menu_choice(clientfd);
         break;
@@ -465,8 +458,6 @@ void faculty_function(int clientfd, int option)
     {
     case 1:
         int count;
-        // int len;
-        // bool result;
         send(clientfd, &option, sizeof(int), 0);
 
         struct course c2;
@@ -489,7 +480,6 @@ void faculty_function(int clientfd, int option)
             printf("\nCourse Name: %s", c2.name);
             printf("\n");
         }
-        //printf("\nHELLO");
         menu_choice(clientfd);
         break;
     case 2:
@@ -516,12 +506,10 @@ void faculty_function(int clientfd, int option)
         getchar();
         printf("Enter no.of credits:");
         scanf("%d", &creds);
-        // getchar();
         c1.credits = creds;
         c1.no_of_seats = seats;
         c1.no_of_available_seats = seats;
         strcpy(c1.status, "ACTIVE");
-        //printf("Hello");
         send(clientfd, &c1, sizeof(struct course), 0);
         recv(clientfd, rdBuff, sizeof(rdBuff), 0);
         recv(clientfd, &result, sizeof(result), 0);
@@ -565,7 +553,7 @@ void faculty_function(int clientfd, int option)
 
         printf("Enter the Course ID to be modified : ");
         scanf("%d", &c3.id);
-        printf("Enter new number of available seats : ");
+        printf("Enter new number of seats : ");
         scanf("%d", &c3.no_of_seats);
 
         send(clientfd, &c3, sizeof(struct course),0);
@@ -623,6 +611,12 @@ void student_function(int clientfd, int option)
         struct course c1;
         recv(clientfd, &count, sizeof(int), 0);
         printf("\nTotal available courses are %d.\n", count);
+        if (count==0)
+        {
+            printf("\n");
+            menu_choice(clientfd);
+        }
+        
         for (int i = 0; i < count; i++)
         {
             recv(clientfd, &c1, sizeof(struct course), 0);
@@ -696,7 +690,6 @@ void student_function(int clientfd, int option)
         {
             recv(clientfd, &enroll2, sizeof(struct enrollment), 0);
             printf("\nCourse ID: %d", enroll2.cid);
-            //printf("\nCourse name: %s",enroll2.name);
             printf("\n");
         }
         printf("\n");
