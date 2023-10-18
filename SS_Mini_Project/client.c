@@ -6,11 +6,16 @@
 #include <netinet/ip.h>
 #include <stdbool.h>
 #include <stdlib.h>
+//#include<fcntl.h>
+//#include<errno.h>
 #include "./structures/faculty.h"
 #include "./structures/student.h"
 #include "./structures/course.h"
 #include "./structures/enrollment.h"
 #include "./structures/admin.h"
+/*#include "./admin_functions.h"
+#include "./student_functions.h"
+#include "./faculty_functions.h"*/
 int menu(int socketfd);
 int admin_menu(int sockfd);
 int faculty_menu(int sockfd);
@@ -239,11 +244,11 @@ void admin_function(int clientfd, int option)
         if (result == true)
         {
             printf("\nStudent Successfully added with student id %d and the default password is 999\n", st1.id);
-            printf("\nYour login ID is MT{id number}");
+            printf("\nYour login ID is MT{id number}\n\n");
         }
         if (result == false)
         {
-            printf("\nStudent adding unsuccessful\n");
+            printf("\nStudent adding unsuccessful\n\n");
         }
 
         menu_choice(clientfd);
@@ -272,7 +277,7 @@ void admin_function(int clientfd, int option)
             printf("Address: %s\n", st2.address);
             printf("Email: %s\n", st2.email);
             printf("Status : %s\n\n", st2.status);
-            printf("LoginID=%s", st2.loginid);
+            printf("LoginID=%s\n", st2.loginid);
         }
         menu_choice(clientfd);
         break;
@@ -297,7 +302,7 @@ void admin_function(int clientfd, int option)
         if (result == true)
         {
             printf("\nFaculty Successfully added with Faculty id %d with default password 000\n", id);
-            printf("\nYour Login Id is FT{facultyid}");
+            printf("\nYour Login Id is FT{facultyid}\n\n");
         }
         if (result == false)
         {
@@ -491,7 +496,7 @@ void faculty_function(int clientfd, int option)
         send(clientfd, &option, sizeof(int), 0);
         struct course c1;
         getchar();
-        printf("Enter name of the course");
+        printf("Enter name of the course: ");
         scanf("%[^\n]", c1.name);
         getchar();
         printf("Enter your faculty login ID : ");
